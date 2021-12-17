@@ -7,6 +7,7 @@ import numpy as np
 from ortoolpy.etc import addvar
 from pulp import *
 from ortoolpy import addvars, addbinvars
+from django_pandas.io import read_frame 
 # Create your views here.
 #回答フォームの作成ビュー
 def shift_recruit_view(request,pk):
@@ -57,29 +58,34 @@ def shift_from_template(request):
 
 def shift_calculate(request,pk):
     shift=get_object_or_404(Shift,pk=pk)
+    #モデルインスタンスのフィールドの値をvalues_list で取り出してそれをlist()でlist化して
+    #Pandasの列又は行に追加している
+    #values_list で値を取り出した際の順序がどのようになっているのかわかっていないので順序が
+    #おかしくなっている可能性あり
     slots=shift.slot.object.all
-    slot_id=slots.values_list("id",flat=True)
-    slot_list=list(slot_id)
-    user_ids=User.objects.filter(Block_name=shift.target).values_list("id",flat=True)
+    slot_df=read_frame(slots,fieldnames=["required_number","content__workload","content__id"],index_col="id")
+    users=User.objects.filter(Block_name=shift.target)
+    users_df=read_frame(users,fieldnames=["workload_sum"],index_col="id")
+    user_ids=users.values_list("id",flat=True)
     user_list=list(user_ids)
-    df=pd.DataFrame(index=user_list,colums=slot_list)
-    df.fillna(0,inplace=True)
+    df=pd.DataFrame(index=slot_df.index,colums=user_list)
+    df.fillna(0,inplace=True)    
     workcontents=[]
     for slot in slots:
-        workcontents.append(slot.content.contentname)
+        workcontents.append(slot.content.id)
         assigning_workers=slot.user_set.all()
         for assigning_worker in assigning_workers:
-            df.at[assigning_worker.id,slot.id]=1
+            df.at[slot.id,assigning_worker.id]=1
     list(set(workcontents))
-    for content in workcontents:
-        df[content]=0
+    exp_df=pd.DataFrame(index=workcontents,columns=user_list).fillna(0,inplace=True)
+    #経験済みの仕事を列挙している    
     for user_id in user_list:
         usermodel=User.objects.get(id=user_id)
         assigned_works=usermodel.assigned_work.all
         for assigned_work in assigned_works:
-            column=assigned_work.contentname
-            if column in workcontents:
-                df.at[user_id,column]=1
+            index=assigned_work.id
+            if index in workcontents:
+                exp_df.at[index,user_id]=1
     #時間帯が重複しているシフト枠の組を取り出す処理。日付ごとに行っている
     days=slots.values_list("days_from_start",flat=True)
     days_list=list(set(days))
@@ -93,24 +99,32 @@ def shift_calculate(request,pk):
                     overlapping_pair=[day_slot.id,other_slot.id]
                     overlapping_pairs.append(overlapping_pair)
 
-    var = pd.DataFrame(np.array(addbinvars(len(user_list), len(slot_list))),index=user_list, columns=slot_list)
+    var = pd.DataFrame(np.array(addbinvars(len(slot_df.index), len(user_list))),index=slot_df.index, columns=user_list)
     shift_rev = df[df.columns].apply(lambda r: 1-r[df.columns],1)
     k=LpProblem()
     #希望していない枠に入らないようにする制約条件
     for (_, h),(_, n) in zip(shift_rev.iterrows(),var.iterrows()):
         k += lpDot(h, n) <= 0
     #同じ時間帯の枠に同じ人が入らないようにする制約条件    
-    for pair in overlapping_pairs:
-        k+=lpDot(var.pair[0],var.pair[1])<=0
+    for index,r in var.iteritems():
+        for pair in overlapping_pairs:
+            k+=r.pair[0]+r.pair[1]<=1
 
-    df.loc['V_need_dif_over']=addvars(len(slot_list))
-    df.loc['V_need_dif_shortage']=addvars(len(slot_list))
-    df.loc['V_experience']=addvars(len(slot_list))
-    for (_, r),(column, d) in zip(df.iteritems(),var.iteritems()):
-        slot_need=slots.objects.get(id=column).required_number
-        k += r.V_need_dif_over >= (lpSum(d) - slot_need)
-        k += r.V_need_dif_shortage >= -(lpSum(d) - slot_need)
-
+    df['V_need_dif_over']=addvars(len(slot_df.index))
+    df['V_need_dif_shortage']=addvars(len(slot_df.index))
+    df['V_experience']=addvars(len(slot_df.index))
+    V_worksum_diff=addvar()
+    #必要な人数と実際に入る人数の差に対する制約条件
+    for (_, r),(index, d) in zip(df.iterrows(),var.iterrows()):
+        k += r.V_need_dif_over >= (lpSum(d) - slot_df.at[index,"required_number"])
+        k += r.V_need_dif_shortage >= -(lpSum(d) - slot_df.at[index,"required_number"])
+    #経験者が少なくとも一人入る制約条件
+    for (_, r),(index, d) in zip(df.iterrows(),var.iterrows()):
+        k+=lpDot(exp_df.loc[slot_df.at[index,"content__id"]],d)+r.V_experience>=1
+    #合計仕事量が均等になるようにする制約条件
+    for column,w in var.iteritems():
+        k+=lpDot(slot_df["content__load"],w) + users_df.at[column,"workload_sum"]<=V_worksum_diff
+        
 #TODO 人数不足スロットの表示・登録処理　
 #TODO 登録済みスロットの登録解除
 #TODO 予約済みスロットの予約解除
