@@ -1,7 +1,11 @@
-from django.shortcuts import render
-from django.views.generic import CreateView
+from django import forms
+from django.http import HttpResponseRedirect
+from django.shortcuts import render,get_object_or_404
+from django.views.generic import CreateView,FormView
 from django.urls import reverse
-from .models import Slot,Shift,User
+from .models import Slot,Shift,User,ShiftTemplate
+from .forms import ShiftFormFromTemplate
+from datetime import timedelta
 import pandas as pd
 import numpy as np
 from ortoolpy.etc import addvar
@@ -52,7 +56,7 @@ def shift_from_template(request):
     deadline=form.cleaned_data.get('deadline')
     target=form.cleaned_data_.get('target')
     for slot in slots:
-        slot.day=first_day+datetime.timedelta(days=slot.days_from_start)
+        slot.day=first_day+timedelta(days=slot.days_from_start)
     Shift.objects.create(shift_name=shift_name,first_day=first_day,deadline=deadline,slot=slots,target=target)
     return HttpResponseRedirect(reverse('shift_maker:mypage', args=(request.user.id,)))
 
@@ -102,6 +106,10 @@ def shift_calculate(request,pk):
     var = pd.DataFrame(np.array(addbinvars(len(slot_df.index), len(user_list))),index=slot_df.index, columns=user_list)
     shift_rev = df[df.columns].apply(lambda r: 1-r[df.columns],1)
     k=LpProblem()
+    C_need_diff_over=10
+    C_need_diff_shortage=1000
+    C_experience=10
+    C_minmax=10
     #希望していない枠に入らないようにする制約条件
     for (_, h),(_, n) in zip(shift_rev.iterrows(),var.iterrows()):
         k += lpDot(h, n) <= 0
@@ -124,7 +132,27 @@ def shift_calculate(request,pk):
     #合計仕事量が均等になるようにする制約条件
     for column,w in var.iteritems():
         k+=lpDot(slot_df["content__load"],w) + users_df.at[column,"workload_sum"]<=V_worksum_diff
-        
+    #コストを計算
+    k+=C_need_diff_over*lpSum(df.V_need_dif_over)\
+    +C_need_diff_shortage*lpSum(df.V_need_dif_shortage)\
+    +C_experience*lpSum(df.V_experience)\
+    +C_minmax*V_worksum_diff
+    k.solve()
+    result=pd.DataFrame(np.vectorize(value)(var).astype(int),index=slot_df.index,columns=user_list)
+    for column in user_list:
+        user=User.objects.get(id=column)
+        user.assigning_slot.clear()
+        for index in result.index:
+            if result.at[index,column]==1:
+                slot=Slot.objects.get(id=index)
+                user.assigning_slot.add(slot)
+                user.workload_sum+=slot_df.at[index,"content__workload"]
+                user.save()
+    for slot in slots:
+        slot.is_decided=True  
+    Slot.objects.bulk_update(slots,update_field=["is_decided"])
+    
 #TODO 人数不足スロットの表示・登録処理　
+
 #TODO 登録済みスロットの登録解除
 #TODO 予約済みスロットの予約解除
