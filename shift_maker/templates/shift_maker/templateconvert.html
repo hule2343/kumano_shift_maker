@@ -1,0 +1,5 @@
+<form action="{%url 'shift_maker:shift_from_template' %}" method="POST">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">送信</button>
+</form>

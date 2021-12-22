@@ -17,6 +17,6 @@ from django.contrib import admin
 from django.urls import path, include
 
 urlpatterns = [
-    path('kumano_shift_maker/',include('shift_maker.urls'))
+    path('kumano_shift_maker/',include('shift_maker.urls')),
     path('admin/', admin.site.urls),
 ]

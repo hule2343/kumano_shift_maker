@@ -1,9 +1,13 @@
+from string import Template
 from django import forms
 from django.http import HttpResponseRedirect
+from django.http.response import Http404
 from django.shortcuts import render,get_object_or_404
-from django.views.generic import CreateView,FormView
+from django.urls.base import reverse_lazy
+from django.views.generic import CreateView,FormView,TemplateView
 from django.urls import reverse
-from .models import Slot,Shift,User,ShiftTemplate
+from django.contrib.auth.mixins import LoginRequiredMixin
+from .models import Slot,Shift,User,ShiftTemplate,Block
 from .forms import ShiftFormFromTemplate
 from datetime import timedelta
 import pandas as pd
@@ -13,13 +17,13 @@ from pulp import *
 from ortoolpy import addvars, addbinvars
 from django_pandas.io import read_frame 
 # Create your views here.
-#回答フォームの作成ビュー
+#回答フォームのビュー
 def shift_recruit_view(request,pk):
     shift=get_object_or_404(Shift, pk=pk)
-    form=forms.ShiftForm(request.POST or None, instance=shift)
-    if form.is_valid():
-        form.save()
-    return render(request,'shift_maker/answer.html',{'form':form})
+    forms=forms.ShiftForm(request.POST or None, instance=shift)
+    if forms.is_valid():
+        forms.save()
+    return render(request,'shift_maker/answer.html',{'forms':forms})
 #回答処理用の関数
 def shift_receive_answer_view(request,pk):
     user=request.user
@@ -32,11 +36,11 @@ def shift_receive_answer_view(request,pk):
 
 class CreateSlotView(CreateView):
     model=Slot
-    fields=__all__
+    fields="__all__"
 
 class CreateShiftTemplate(CreateView):
     model=ShiftTemplate
-    fields=__all__
+    fields="__all__"
 
 class CreateShift(CreateView):
     model=Shift
@@ -44,21 +48,40 @@ class CreateShift(CreateView):
 class ShiftFormFromTemplateView(FormView):
     template_name='shift_maker/templateconvert.html'
     form_class=ShiftFormFromTemplate
-    success_url=reverse('shift_maker:shift_from_template')
+    success_url=reverse_lazy("shift_maker:mypage")
+
+class MyPageView(LoginRequiredMixin,TemplateView):
+    model=User
+    template_name="shift_maker/mypage.html"    
 #シフトのテンプレートからShiftModelを作る関数
 #TODO 不正なフォームへの対応
 def shift_from_template(request):
-    form=forms.ShiftFormFromTemplate(request.POST)
-    selected_shift_template=form.cleaned_data.get('shift_template')
-    slots=selected_shift_template.slot_templates.all()
-    first_day=form.cleaned_data.get('first_day')
-    shift_name=form.cleaned_data.get('shift_name')
-    deadline=form.cleaned_data.get('deadline')
-    target=form.cleaned_data_.get('target')
-    for slot in slots:
-        slot.day=first_day+timedelta(days=slot.days_from_start)
-    Shift.objects.create(shift_name=shift_name,first_day=first_day,deadline=deadline,slot=slots,target=target)
-    return HttpResponseRedirect(reverse('shift_maker:mypage', args=(request.user.id,)))
+    form=ShiftFormFromTemplate(data=request.POST)
+    if request.method=="POST":
+        if form.is_valid():
+            selected_shift_template=form.cleaned_data.get('shift_template')
+            slots=selected_shift_template.slot_templates.all()
+            first_day=form.cleaned_data.get('first_day')
+            print(first_day)
+            shift_name=form.cleaned_data.get('shift_name')
+            deadline=form.cleaned_data.get('deadline')
+            target=form.cleaned_data.get('target')
+            creater=request.user
+            for slot in slots:
+                slot.day=first_day+timedelta(days=slot.days_from_start)
+            shift=Shift.objects.create(shift_name=shift_name,first_day=first_day,deadline=deadline,target=target,creater=creater)
+            shift.slot.add(*slots)
+            return HttpResponseRedirect(reverse('shift_maker:mypage'))
+        elif request.method=="GET":
+            print("Get")
+            return HttpResponseRedirect(reverse('shift_maker:shift_create_form_template'))
+        else:
+            for i in form:
+                print(i)
+            return HttpResponseRedirect(reverse('shift_maker:shift_create_form_template'))
+    else:
+        print("NOt Post")
+        return HttpResponseRedirect(reverse('shift_maker:shift_create_form_template'))
 
 def shift_calculate(request,pk):
     shift=get_object_or_404(Shift,pk=pk)
@@ -151,8 +174,36 @@ def shift_calculate(request,pk):
     for slot in slots:
         slot.is_decided=True  
     Slot.objects.bulk_update(slots,update_field=["is_decided"])
-    
-#TODO 人数不足スロットの表示・登録処理　
+    return HttpResponseRedirect(reverse('shift_maker:mypage', args=(request.user.id,)))
 
-#TODO 登録済みスロットの登録解除
-#TODO 予約済みスロットの予約解除
+    
+# 人数不足スロットの表示・登録処理　
+def assign_lack_slot(request,pk):
+    slot=Slot.objects.get(pk=pk)
+    user=request.user
+    workload=Slot.objects.values_list("content__workload",flat=True).get(pk=pk)
+    user.assigning_slot.add(slot)
+    user.workload_sum+=workload
+    user.save()
+    return HttpResponseRedirect(reverse('shift_maker:mypage', args=(request.user.id,)))
+
+# 登録済みスロットの登録解除
+def delete_assigned_slot(request,pk):
+    slot=Slot.objects.get(pk=pk)
+    user=request.user
+    workload=Slot.objects.values_list("content__workload",flat=True).get(pk=pk)
+    user.assigning_slot.remove(slot)
+    user.workload_sum-=workload
+    user.save()
+    return HttpResponseRedirect(reverse('shift_maker:mypage', args=(request.user.id,)))
+
+# 予約済みスロットの予約解除
+def delete_booking_slot(request,pk):
+    slot=Slot.objects.get(pk=pk)
+    user=request.user
+    workload=Slot.objects.values_list("content__workload",flat=True).get(pk=pk)
+    user.assigning_slot.remove(slot)
+    user.save()
+    return HttpResponseRedirect(reverse('shift_maker:mypage', args=(request.user.id,)))
+
+    

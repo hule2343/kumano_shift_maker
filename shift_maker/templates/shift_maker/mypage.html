@@ -1,0 +1,10 @@
+<h1>{{ user.account_name }}</h1>
+
+<ul>
+{% for slot in user.assigning_slot.all %}
+    <li>{{ slot.workname }}</li>
+{% endfor %}
+</ul>
+
+<a href="{% url 'shift_maker:logout' %}">Log out</a>
+<a href="{% url 'shift_maker:shift_create_form_template' %}">Create shift from shift template</a>
