@@ -1,0 +1,9 @@
+<form action="{% url 'shift_maker:assign_lack' slot.id %}" method="post">
+    {% csrf_token %}
+    <li>{{slot.workname}}</li>
+    <li>{{slot.day}}</li>
+    <li>{{slot.start_time}}</li>
+    <li>{{slot.end_time}}</li>
+    <li>{{slot.content}}</li>
+    <input type="submit" value="この仕事に入る">
+</form>

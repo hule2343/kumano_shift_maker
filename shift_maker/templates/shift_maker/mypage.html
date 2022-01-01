@@ -1,10 +1,40 @@
 <h1>{{ user.account_name }}</h1>
 
 <ul>
-{% for slot in user.assigning_slot.all %}
+    <h2>決定済みのシフト</h2>
+{% for slot in decided_assign_slot %}
     <li>{{ slot.workname }}</li>
+    <a href="{% url 'shift_maker:slot_delete_detail' slot.id %}">詳細</a>
 {% endfor %}
 </ul>
 
+<ul>
+    <h2>応募したスロット</h2>
+    {% for slot in undecided_assign_slot %}
+        <li>{{ slot.workname }}</li>
+        <a href="{% url 'shift_maker:booking_slot_detail' slot.id %}">詳細</a>
+    {% endfor %}
+</ul>
+<ul>
+    <h2>人数不足のスロット</h2>
+    {% for slot in lack_slot %}
+    <li><a href=>{{ slot.workname }}</a></li>
+    <li>{{slot.required_number|add:slot.assigning_number}}</li>
+    <li><a href="{% url 'shift_maker:lack_slot_detail' slot.id %}">登録</a></li>
+    {% endfor %}
+</ul>
+<h2>募集中のシフト</h2>
+<ul>
+    {%for shift in shifts%}
+    <li><a href="{% url 'shift_maker:recruit' shift.id %}">{{shift.shift_name}}</a></li>
+    {% endfor %}
+</ul>
+
+<h2>募集したシフト</h2>
+<ul>
+    {%for shift in made_shifts%}
+    <li><a href="{% url 'shift_maker:recruit_detail' shift.id %}">{{shift.shift_name}}</a></li>
+    {% endfor %}
+</ul>
 <a href="{% url 'shift_maker:logout' %}">Log out</a>
 <a href="{% url 'shift_maker:shift_create_form_template' %}">Create shift from shift template</a>

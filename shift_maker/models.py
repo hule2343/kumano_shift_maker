@@ -71,7 +71,7 @@ class User(AbstractBaseUser,PermissionsMixin):
     account_name=models.CharField(max_length=40,verbose_name='アカウント名',unique=True)
     workload_sum=models.IntegerField(verbose_name='過去の仕事量',default=0)
     assigned_work=models.ManyToManyField(WorkContent,verbose_name='経験済みの仕事',blank=True)
-    assigning_slot=models.ManyToManyField(Slot,blank=True)
+    assigning_slot=models.ManyToManyField(Slot,blank=True,related_name='slot_users')
     password=models.CharField(max_length=128, verbose_name='password')
     is_active     = models.BooleanField(default=False)
     is_staff      = models.BooleanField(default=False)
