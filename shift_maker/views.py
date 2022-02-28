@@ -206,6 +206,7 @@ class LackSlotDetailView(DetailView):
     model=Slot
     template_name="shift_maker/lack_slot_detail.html"
 
+#テスト中
 def assign_lack_slot(request,pk):
     slot=Slot.objects.get(pk=pk)
     user=request.user
