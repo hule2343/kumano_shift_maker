@@ -203,6 +203,10 @@ def assign_lack_slot(request,pk):
         return HttpResponseRedirect(reverse('shift_maker:mypage'))
     workload=Slot.objects.values_list("content__workload",flat=True).get(pk=pk)
     user.assigning_slot.add(slot)
+    if overlapping_slots(user.assigning_slot.all()):
+        user.assigning_slot.remove(slot)
+        print(user.assigning_slot.all)
+        return HttpResponseRedirect(reverse('shift_maker:mypage'))
     user.workload_sum+=workload
     user.save()
     return HttpResponseRedirect(reverse('shift_maker:mypage'))
