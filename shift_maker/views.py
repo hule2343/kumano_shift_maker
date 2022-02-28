@@ -134,18 +134,7 @@ def shift_calculate(request,pk):
             if index in workcontents:
                 exp_df.at[index,user_id]=1
     #時間帯が重複しているシフト枠の組を取り出す処理。日付ごとに行っている
-    days=slots.values_list("days_from_start",flat=True)
-    days_list=list(set(days))
-    overlapping_pairs=[]
-    for day in days_list:
-        day_slots=slots.filter(days_from_start=day)
-        for day_slot in day_slots:
-            day_slots=day_slots.exclude(id=day_slot.id)
-            for other_slot in day_slots:
-                if other_slot.start_time < day_slot.end_time and other_slot.end_time >day_slot.start_time:
-                    overlapping_pair=[day_slot.id,other_slot.id]
-                    overlapping_pairs.append(overlapping_pair)
-
+    overlapping_pairs=overlapping_slots(slots)
     var = pd.DataFrame(np.array(addbinvars(len(slot_df.index), len(user_list))),index=slot_df.index, columns=user_list)
     shift_rev = df[df.columns].apply(lambda r: 1-r[df.columns],1)
     k=LpProblem()
@@ -210,6 +199,8 @@ class LackSlotDetailView(DetailView):
 def assign_lack_slot(request,pk):
     slot=Slot.objects.get(pk=pk)
     user=request.user
+    if slot in user.assigning_slot.all():
+        return HttpResponseRedirect(reverse('shift_maker:mypage'))
     workload=Slot.objects.values_list("content__workload",flat=True).get(pk=pk)
     user.assigning_slot.add(slot)
     user.workload_sum+=workload
@@ -242,4 +233,16 @@ def delete_booking_slot(request,pk):
     user.save()
     return HttpResponseRedirect(reverse('shift_maker:mypage'))
 
-    
+def overlapping_slots(slots):
+    days=slots.values_list("days_from_start",flat=True)
+    days_list=list(set(days))
+    overlapping_pairs=[]
+    for day in days_list:
+        day_slots=slots.filter(days_from_start=day)
+        for day_slot in day_slots:
+            day_slots=day_slots.exclude(id=day_slot.id)
+            for other_slot in day_slots:
+                if other_slot.start_time < day_slot.end_time and other_slot.end_time >day_slot.start_time:
+                    overlapping_pair=[day_slot.id,other_slot.id]
+                    overlapping_pairs.append(overlapping_pair)
+    return overlapping_pairs

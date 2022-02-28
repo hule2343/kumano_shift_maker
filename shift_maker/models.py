@@ -12,11 +12,11 @@ class WorkContent(models.Model):
 
 class Slot(models.Model):
     workname=models.CharField(max_length=30,null=True,blank=True)
-    day=models.DateField(default=date.today())
+    day=models.DateField(default=timezone.now)
     start_time=models.TimeField(default=time(10,0,0))
     end_time=models.TimeField(default=time(12,0,0))
     days_from_start=models.PositiveIntegerField(default=0) #1日目は０
-    required_number=models.PositiveIntegerField()
+    required_number=models.PositiveIntegerField(default=1)
     content=models.ForeignKey(WorkContent,on_delete=models.SET_DEFAULT,default='無し')
     is_decided=models.BooleanField(default=False)#既に募集締め切りが過ぎた枠かどうか
     def __str__(self):
