@@ -2,11 +2,12 @@ from django.db import models
 from django.contrib.auth.models import BaseUserManager,AbstractBaseUser,PermissionsMixin
 from datetime import date,time
 from django.utils import timezone
+import datetime
 # Create your models here.
 
 class WorkContent(models.Model):
     contentname=models.CharField(max_length=25)
-    workload=models.IntegerField()
+    workload=models.IntegerField(default=0)
     def __str__(self):
         return self.contentname
 
@@ -87,11 +88,11 @@ class User(AbstractBaseUser,PermissionsMixin):
 
 class Shift(models.Model):
     shift_name=models.CharField(max_length=40,verbose_name="シフト名")
-    first_day=models.DateField()
-    deadline=models.DateField()
+    first_day=models.DateField(default=timezone.now)
+    deadline=models.DateField(default=timezone.now()+datetime.timedelta(days=3))
     slot=models.ManyToManyField(Slot,blank=True,null=True)
     target=models.CharField(max_length=3,choices=Block.choices)
-    creater=models.ForeignKey(User,on_delete=models.CASCADE,)
+    creater=models.ForeignKey(User,on_delete=models.CASCADE,default=1)
 
 class ShiftTemplate(models.Model):
     shift_template_name=models.CharField(max_length=40,verbose_name="テンプレート名")

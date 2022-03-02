@@ -138,7 +138,8 @@ def shift_calculate(request,pk):
     var = pd.DataFrame(np.array(addbinvars(len(slot_df.index), len(user_list))),index=slot_df.index, columns=user_list)
     shift_rev = df[df.columns].apply(lambda r: 1-r[df.columns],1)
     k=LpProblem()
-    C_need_diff_over=10
+    
+    C_need_diff_over=11
     C_need_diff_shortage=1000
     C_experience=10
     C_minmax=10
@@ -148,7 +149,6 @@ def shift_calculate(request,pk):
     #同じ時間帯の枠に同じ人が入らないようにする制約条件    
     #エラー発生中
     print(overlapping_pairs)
-    print()
     for index,r in var.iteritems():
         for i in range(len(overlapping_pairs)):
             k+=r[overlapping_pairs[i][0]]+r[overlapping_pairs[i][1]]<=1
@@ -195,7 +195,7 @@ class LackSlotDetailView(DetailView):
     model=Slot
     template_name="shift_maker/lack_slot_detail.html"
 
-#テスト中
+#テスト１
 def assign_lack_slot(request,pk):
     slot=Slot.objects.get(pk=pk)
     user=request.user
@@ -205,7 +205,6 @@ def assign_lack_slot(request,pk):
     user.assigning_slot.add(slot)
     if overlapping_slots(user.assigning_slot.all()):
         user.assigning_slot.remove(slot)
-        print(user.assigning_slot.all)
         return HttpResponseRedirect(reverse('shift_maker:mypage'))
     user.workload_sum+=workload
     user.save()
@@ -238,11 +237,11 @@ def delete_booking_slot(request,pk):
     return HttpResponseRedirect(reverse('shift_maker:mypage'))
 
 def overlapping_slots(slots):
-    days=slots.values_list("days_from_start",flat=True)
+    days=slots.values_list("day",flat=True)
     days_list=list(set(days))
     overlapping_pairs=[]
     for day in days_list:
-        day_slots=slots.filter(days_from_start=day)
+        day_slots=slots.filter(day=day)
         for day_slot in day_slots:
             day_slots=day_slots.exclude(id=day_slot.id)
             for other_slot in day_slots:
