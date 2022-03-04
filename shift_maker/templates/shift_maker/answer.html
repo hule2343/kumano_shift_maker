@@ -9,3 +9,23 @@
 </fieldset>
 <input type="submit" value="回答">
 </form>
+
+<table>
+    <tr>
+        <th>時間</th>
+        {% for day in days_list %}
+            <th>{{day}}</th>
+        {% endfor %}
+    </tr>
+    {% for time, time_slot_list in sametime_slot_list %}
+    <tr>
+        <td>{{ time }}</td>
+        {% for slots in time_slot_list %}
+        {% for slot in slots %}
+            <td> <input type="checkbox" name="slot" id="slot{{ forloop.counter }}" value="{{ slot.id }}">
+                <label for="slot{{ forloop.counter }}">{{ slot.workname }}</label><br></td>
+        {% endfor %}
+        {% endfor %}
+    </tr>
+    {% endfor %}
+</table>

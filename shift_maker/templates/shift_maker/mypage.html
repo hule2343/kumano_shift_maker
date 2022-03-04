@@ -1,10 +1,19 @@
-<h1>{{ user.account_name }}</h1>
+{% extends 'shift_maker/base.html' %}
 
+{% block header %}
+<h1>{{ user.account_name }}</h1>
+{% endblock %}
+
+{% block body-contents %}
+<u>
+    <h2>今期の仕事量</h2>
+    <h3>{{user.workload_sum}}</h3>
+</u>
 <ul>
     <h2>決定済みのシフト</h2>
 {% for slot in decided_assign_slot %}
     <li>{{ slot.workname }}</li>
-    <a href="{% url 'shift_maker:slot_delete_detail' slot.id %}">詳細</a>
+    <button type="button" class="btn btn-primary mb-8" data-toggle="modal" data-target="#DeleteModal{%slot.id%}">ボタンで開く</button>
 {% endfor %}
 </ul>
 
@@ -12,7 +21,7 @@
     <h2>応募したスロット</h2>
     {% for slot in undecided_assign_slot %}
         <li>{{ slot.workname }}</li>
-        <a href="{% url 'shift_maker:booking_slot_detail' slot.id %}">詳細</a>
+        <button type="button" class="btn btn-primary mb-8" data-toggle="modal" data-target="#BookingModal{%slot.id%}">ボタンで開く</button>
     {% endfor %}
 </ul>
 <ul>
@@ -20,12 +29,13 @@
     {% for slot in lack_slot %}
     <li><a href=>{{ slot.workname }}</a></li>
     <li>{{slot.required_number|add:slot.assigning_number}}</li>
-    <li><a href="{% url 'shift_maker:lack_slot_detail' slot.id %}">登録</a></li>
+    <button type="button" class="btn btn-primary mb-8" data-toggle="modal" data-target="#LackModal{%slot.id%}">ボタンで開く</button>
     {% endfor %}
 </ul>
 <h2>募集中のシフト</h2>
 <ul>
     {%for shift in shifts%}
+    <button type="button" class="btn btn-primary mb-8" data-toggle="modal" data-target="#testModal">ボタンで開く</button>
     <li><a href="{% url 'shift_maker:recruit' shift.id %}">{{shift.shift_name}}</a></li>
     {% endfor %}
 </ul>
@@ -33,8 +43,111 @@
 <h2>募集したシフト</h2>
 <ul>
     {%for shift in made_shifts%}
+    <button type="button" class="btn btn-primary mb-8" data-toggle="modal" data-target="#testModal">ボタンで開く</button>
     <li><a href="{% url 'shift_maker:recruit_detail' shift.id %}">{{shift.shift_name}}</a></li>
     {% endfor %}
 </ul>
+{% endblock %}
+
+{% block footer %} 
 <a href="{% url 'shift_maker:logout' %}">Log out</a>
 <a href="{% url 'shift_maker:shift_create_form_template' %}">Create shift from shift template</a>
+{% endblock %}
+
+{% for slot in decided_assign_slot %}
+<div class="modal fade" id="DeleteModal{%slot.id%}" tabindex="-1" role="dialog" aria-labelledby="basicModal" aria-hidden="true">
+        <div class="modal-background"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title">確認</p>
+            </header>
+            <section class="modal-card-body">
+                <p>仕事名　{{slot.workname}}</p>
+                <p>日付　{{slot.day}}</p>
+                <p>開始時刻　{{slot.start_time}}</p>
+                <p>終了時刻　{{slot.end_time}}</p>
+                <p>仕事内容　{{slot.content.contentname}}</p>
+                <p>仕事量　{{slot.content.workload}}</p>
+            </section>
+            <footer class="modal-card-foot">
+                <form action="{% url 'shift_maker:slot_delete' slot.id %}" method="post">
+                    {% csrf_token %}
+                    <button type="button" class="button is-info" id="delete-cancel-button">キャンセル</button>
+                    <button type="submit" class="button is-danger">登録解除</button>
+                </form>
+            </footer>
+        </div>
+</div>
+{% endfor %}
+
+{% for slot in undecided_assign_slot %}
+<div class="modal fade" id="BookingModal{%slot.id%}" tabindex="-1" role="dialog" aria-labelledby="basicModal" aria-hidden="true">
+        <div class="modal-background"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title">確認</p>
+            </header>
+            <section class="modal-card-body">
+                <p>仕事名　{{slot.workname}}</p>
+                <p>日付　{{slot.day}}</p>
+                <p>開始時刻　{{slot.start_time}}</p>
+                <p>終了時刻　{{slot.end_time}}</p>
+                <p>仕事内容　{{slot.content.contentname}}</p>
+                <p>仕事量　{{slot.content.workload}}</p>
+            </section>
+            <footer class="modal-card-foot">
+                <form action="{% url 'shift_maker:booking_slot_delete' slot.id %}" method="post">
+                    {% csrf_token %}
+                    <button type="button" class="button is-info" id="delete-cancel-button">キャンセル</button>
+                    <button type="submit" class="button is-danger">登録解除</button>
+                </form>
+            </footer>
+        </div>
+</div>
+{% endfor %}
+
+{% for slot in lack_slot %}
+<div class="modal fade" id="LackModal{%slot.id%}" tabindex="-1" role="dialog" aria-labelledby="basicModal" aria-hidden="true">
+        <div class="modal-background"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title">確認</p>
+            </header>
+            <section class="modal-card-body">
+                <p>仕事名　{{slot.workname}}</p>
+                <p>日付　{{slot.day}}</p>
+                <p>開始時刻　{{slot.start_time}}</p>
+                <p>終了時刻　{{slot.end_time}}</p>
+                <p>仕事内容　{{slot.content.contentname}}</p>
+                <p>仕事量　{{slot.content.workload}}</p>
+            </section>
+            <footer class="modal-card-foot">
+                <form action="{% url 'shift_maker:assign_lack' slot.id %}" method="post">
+                    {% csrf_token %}
+                    <button type="button" class="button is-info" id="delete-cancel-button">キャンセル</button>
+                    <button type="submit" class="button is-danger">登録</button>
+                </form>
+            </footer>
+        </div>
+</div>
+{% endfor %}
+
+{% block extrajs %}
+    <script>
+        const deleteForm = document.getElementById('delete-form');
+        const modal = document.getElementById('modal');
+        const deleteCancelButton = document.getElementById('delete-cancel-button');
+        const deleteModalButtons = document.getElementsByClassName('delete-modal-button');
+
+        for (const button of deleteModalButtons) {
+            button.addEventListener('click', () => {
+                modal.classList.add('is-active');
+                deleteForm.action = button.dataset.deleteurl;
+            });
+        }
+
+        deleteCancelButton.addEventListener('click', () => {
+            modal.classList.remove('is-active');
+        });
+    </script>
+{% endblock %}

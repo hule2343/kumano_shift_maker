@@ -25,7 +25,16 @@ def shift_recruit_view(request,pk):
     forms=ShiftForm(request.POST or None, instance=shift)
     if forms.is_valid():
         forms.save()
-    return render(request,'shift_maker/answer.html',{'forms':forms,'shift':shift})
+    days_list=list(set(list(shift.slot.all().values_list('day',flat=True)))).sort()
+    time_list=list(set(list(shift.slot.all().values_list('start_time','end_time')))).sort(key=lambda x: x[0])
+    sametime_slotlist=[]
+    for time in time_list:
+        time_slot_list=[]
+        for day in days_list:
+            slots=shift.slot.filter(day=day,start_time=time[0],end_time=time[1])
+            time_slot_list.append(slots)
+        sametime_slotlist.append((time,time_slot_list))
+    return render(request,'shift_maker/answer.html',{'forms':forms,'shift':shift,'days_list':days_list,'sametime_slot_list':sametime_slotlist,})
 #回答処理用の関数
 def shift_receive_answer_view(request,pk):
     user=request.user
@@ -101,7 +110,7 @@ def shift_from_template(request):
     else:
         print("NOt Post")
         return HttpResponseRedirect(reverse('shift_maker:shift_create_form_template'))
-
+#制約条件ごとのテストは完了
 def shift_calculate(request,pk):
     shift=get_object_or_404(Shift,pk=pk)
     #モデルインスタンスのフィールドの値をvalues_list で取り出してそれをlist()でlist化して
