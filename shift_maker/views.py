@@ -198,7 +198,20 @@ def shift_calculate(request,pk):
     Slot.objects.bulk_update(slots,["is_decided"])
     return HttpResponseRedirect(reverse('shift_maker:mypage'))
 
-    
+def shift_recruit_view(request,pk):
+    shift=get_object_or_404(Shift, pk=pk)
+    days_list=list(set(list(shift.slot.all().values_list('day',flat=True)))).sort()
+    time_list=list(set(list(shift.slot.all().values_list('start_time','end_time')))).sort(key=lambda x: x[0])
+    sametime_slotlist=[]
+    for time in time_list:
+        time_slot_list=[]
+        for day in days_list:
+            slots=shift.slot.filter(day=day,start_time=time[0],end_time=time[1])
+            for slot in slots:
+                time_slot_list.append((slot,slot.slot_users.all()))
+        sametime_slotlist.append((time,time_slot_list))
+    return render(request,'shift_maker/answer.html',{'shift':shift,'days_list':days_list,'sametime_slot_list':sametime_slotlist})    
+
 # 人数不足スロットの表示・登録処理　
 class LackSlotDetailView(DetailView):
     model=Slot

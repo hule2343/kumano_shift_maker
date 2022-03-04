@@ -1,0 +1,21 @@
+{% block body-contents %}
+<table>
+    <tr>
+        <th>時間</th>
+        {% for day in days_list %}
+            <th>{{day}}</th>
+        {% endfor %}
+    </tr>
+    {% for time, time_slot_list in sametime_slot_list %}
+    <tr>
+        <td>{{ time }}</td>
+        {% for slot,slot_users in time_slot_list %}
+        {{slot.workname}}
+        {% for user in slot_users %}
+            <li>{{user.account_name}}</li>
+        {% endfor %}
+        {% endfor %}
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}
