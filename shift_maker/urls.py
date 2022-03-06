@@ -9,6 +9,7 @@ urlpatterns = [
     path('mypage/recruitment/<int:pk>/answer/',views.shift_receive_answer_view,name='answer'),
     path('mypage/recruit/<int:pk>/', views.RecruitDetailView.as_view(),name='recruit_detail'),
     path('mypage/recruit/<int:pk>/calculate/',views.shift_calculate,name='scheduling'),
+    path('mypage/recruit/<int:pk>/calculate/result',views.shift_calculate_result,name='result_schedule'),
     path('mypage/createslot/',views.CreateSlotView.as_view(),name='createslot'),
     path('mypage/createshift/',views.CreateShift.as_view(),name='createshift'),
     path('mypage/createtemplate/',views.CreateShiftTemplate.as_view(),name='createshifttemplate'),

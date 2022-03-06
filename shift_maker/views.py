@@ -25,8 +25,8 @@ def shift_recruit_view(request,pk):
     forms=ShiftForm(request.POST or None, instance=shift)
     if forms.is_valid():
         forms.save()
-    days_list=list(set(list(shift.slot.all().values_list('day',flat=True)))).sort()
-    time_list=list(set(list(shift.slot.all().values_list('start_time','end_time')))).sort(key=lambda x: x[0])
+    days_list=list(set(list(shift.slot.all().values_list('day',flat=True))))
+    time_list=list(set(list(shift.slot.all().values_list('start_time','end_time'))))
     sametime_slotlist=[]
     for time in time_list:
         time_slot_list=[]
@@ -196,9 +196,9 @@ def shift_calculate(request,pk):
     for slot in slots:
         slot.is_decided=True  
     Slot.objects.bulk_update(slots,["is_decided"])
-    return HttpResponseRedirect(reverse('shift_maker:mypage'))
+    return HttpResponseRedirect(reverse('shift_maker:result_schedule' ,args=[shift.pk]))
 
-def shift_recruit_view(request,pk):
+def shift_calculate_result(request,pk):
     shift=get_object_or_404(Shift, pk=pk)
     days_list=list(set(list(shift.slot.all().values_list('day',flat=True)))).sort()
     time_list=list(set(list(shift.slot.all().values_list('start_time','end_time')))).sort(key=lambda x: x[0])
@@ -210,7 +210,7 @@ def shift_recruit_view(request,pk):
             for slot in slots:
                 time_slot_list.append((slot,slot.slot_users.all()))
         sametime_slotlist.append((time,time_slot_list))
-    return render(request,'shift_maker/answer.html',{'shift':shift,'days_list':days_list,'sametime_slot_list':sametime_slotlist})    
+    return render(request,'shift_maker/shift_result.html',{'shift':shift,'days_list':days_list,'sametime_slot_list':sametime_slotlist})    
 
 # 人数不足スロットの表示・登録処理　
 class LackSlotDetailView(DetailView):
