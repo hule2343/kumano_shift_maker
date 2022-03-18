@@ -11,25 +11,93 @@
     <h2>今期の仕事量</h2>
     <h3>{{user.workload_sum}}</h3>
 </u>
-<ul>
     
-    <h2>決定済みのシフト</h2>
-{% for slot in decided_assign_slot %}
-    <li>{{ slot.workname }}</li>
-    <button type="button" class="btn btn-primary delete-modal-button"
+    <h2>{{ user.account_name }}さんが入るシフト枠</h2>
+    <div class="container-fluid">
+    <div class="row flex-row flex-nowrap overflow-auto">    
+    {% for slot in decided_assign_slot %}
+    <div class="col-5">
+        <div class="card card-block h-100">
+          <div class="card-body">
+            <h4 class="card-title">{{ slot.workname }}</h4>
+            <p class="card-text">{{slot.day|date:'Y年n月j日'}}</p>
+            <p class="card-text">{{slot.start_time|date:'G時i分'}}開始</p>
+            <button type="button" class="btn btn-primary delete-modal-button"
     data-toggle="modal"
     data-target="#exampleModal"
-    data-slotname="aaaaaaaa"
+    data-slotname="{{slot.workname}}"
     data-url="{% url 'shift_maker:slot_delete' slot.id %}"
-    data-slot_day="{{slot.day}}" 
-    data-slot_starttime="{{slot.start_time}}"
-    data-slot_endtime="{{slot.end_time}}" 
-    data-slot_content="{{slot.content.contentname}}">ボタンで開く</button>
-{% endfor %}
-</ul>
+    data-slot_day="{{slot.day|date:'Y年n月j日'}}" 
+    data-slot_starttime="{{slot.start_time|date:'G時i分'}}"
+    data-slot_endtime="{{slot.end_time|date:'G時i分'}}" 
+    data-submitval="シフトをキャンセル"
+    data-slot_content="{{slot.content.contentname}}">詳細</button>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+    </div>
+    </div>
+
 </section>
 
+<section class="section">
+<h2>{{ user.account_name }}さんが回答したシフト枠</h2>
+<div class="container-fluid">
+    <div class="row flex-row flex-nowrap overflow-auto">    
+    {% for slot in undecided_assign_slot %}
+    <div class="col-5">
+        <div class="card card-block h-100">
+          <div class="card-body">
+            <h4 class="card-title">{{ slot.workname }}</h4>
+            <p class="card-text">{{slot.day|date:'Y年n月j日'}}</p>
+            <p class="card-text">{{slot.start_time|date:'G時i分'}}開始</p>
+            <button type="button" class="btn btn-primary delete-modal-button"
+    data-toggle="modal"
+    data-target="#exampleModal"
+    data-slotname="{{slot.workname}}"
+    data-url="{% url 'shift_maker:booking_slot_delete' slot.id %}"
+    data-slot_day="{{slot.day|date:'Y年n月j日'}}" 
+    data-slot_starttime="{{slot.start_time|date:'G時i分'}}"
+    data-slot_endtime="{{slot.end_time|date:'G時i分'}}" 
+    data-submitval="シフトをキャンセル"
+    data-slot_content="{{slot.content.contentname}}">詳細</button>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+    </div>
+    </div>
+</section>
 
+<section class="section">
+<h2>人数が不足中のシフト枠</h2>
+<div class="container-fluid">
+    <div class="row flex-row flex-nowrap overflow-auto">    
+    {% for slot in lack_slot%}
+    <div class="col-5">
+        <div class="card card-block h-100">
+          <div class="card-body">
+            <h4 class="card-title">{{ slot.workname }}</h4>
+            <p class="card-text">{{slot.day|date:'Y年n月j日'}}</p>
+            <p class="card-text">{{slot.start_time|date:'G時i分'}}開始</p>
+            <button type="button" class="btn btn-primary delete-modal-button"
+    data-toggle="modal"
+    data-target="#exampleModal"
+    data-slotname="{{slot.workname}}"
+    data-url="{% url 'shift_maker:assign_lack' slot.id %}"
+    data-slot_day="{{slot.day|date:'Y年n月j日'}}" 
+    data-slot_starttime="{{slot.start_time|date:'G時i分'}}"
+    data-slot_endtime="{{slot.end_time|date:'G時i分'}}" 
+    data-submitval="シフトを入れる"
+    data-slot_content="{{slot.content.contentname}}">詳細</button>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+    </div>
+    </div>
+</section>
 <!--
 <ul>
     <h2>応募したスロット</h2>
@@ -60,12 +128,23 @@
     {% endfor %}
 </ul>
 
-<h2>募集したシフト</h2>
+<h2>決定済みのシフト</h2>
+<ul>
+    {%for shift in decided_shifts%}
+    <li><a href="{% url 'shift_maker:result_schedule' shift.id %}">{{shift.shift_name}}</a></li>
+    {% endfor %}
+</ul>
+
+
+<h2>{{user.account_name}}さんが募集をかけたシフト</h2>
 <ul>
     {%for shift in made_shifts%}
     <li><a href="{% url 'shift_maker:recruit_detail' shift.id %}">{{shift.shift_name}}</a></li>
     {% endfor %}
+    <a href="{% url 'shift_maker:create_page' %}">＋新しく募集する</a>
 </ul>
+
+
 
 <div class="modal" style="z-index: 1500" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
         <div class="modal-background"></div>
@@ -75,18 +154,18 @@
             </header>
             <section class="modal-card-body">
                 <div class="modal-body">
-                    仕事名　<span id="slotname"></span>
-                    日付　<span id="slot_day"></span>
-                    開始時刻　<span id="slot_starttime"></span>
-                     終了時刻　<span id="slot_endtime"></span>
-                     仕事内容　<span id="slot_content"></span>
+                    <p>仕事名　<span id="slotname"></span></p>
+                    <p>日付　<span id="slot_day"></span></p>
+                    <p>開始時刻　<span id="slot_starttime"></span></p>
+                    <p>終了時刻　<span id="slot_endtime"></span></p>
+                    <p>仕事内容　<span id="slot_content"></span></p>
                 </div>
                 </section>
             <footer class="modal-card-foot">
                 <form action="" method="post" id="delete-form">
                     {% csrf_token %}
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">キャンセル</button>
-                    <button type="submit" class="btn btn-primary">登録解除</button>
+                    <button id="submit" type="submit" class="btn btn-primary">登録解除</button>
                 </form>
             </footer>
         </div>
@@ -96,62 +175,10 @@
 {% endblock %}
 
 {% block footer %} 
-<a href="{% url 'shift_maker:logout' %}">Log out</a>
-<a href="{% url 'shift_maker:shift_create_form_template' %}">Create shift from shift template</a>
+<a href="{% url 'shift_maker:logout' %}">ログアウト</a>
 {% endblock %}
 
-<!--
-<div class="modal fade" id="undecidedModal" tabindex="-1" role="dialog" aria-labelledby="basicModal" aria-hidden="true">
-    <div class="modal-background"></div>
-    <div class="modal-card">
-        <header class="modal-card-head">
-            <p class="modal-card-title">確認</p>
-        </header>
-        <section class="modal-card-body">
-            <p> 仕事名　</p>
-            <p> 日付　</p>
-            <p> 開始時刻　</p>
-            <p> 終了時刻　</p>
-        </section>
-        <footer class="modal-card-foot">
-            <form action="" method="post" id="delete-form">
-                {% csrf_token %}
-                <button type="button" class="button is-info" id="delete-cancel-button">キャンセル</button>
-                <button type="submit" class="button is-danger">登録解除</button>
-            </form>
-        </footer>
-    </div>
-</div>
-
-
-<div class="modal" id="lackModal" tabindex="-1" role="dialog" aria-labelledby="basicModal" aria-hidden="true">
-    <div class="modal-background"></div>
-    <div class="modal-card">
-        <header class="modal-card-head">
-            <p class="modal-card-title">確認</p>
-        </header>
-        <section class="modal-card-body">
-            <p> 仕事名　</p>
-            <p> 日付　</p>
-            <p> 開始時刻　</p>
-            <p> 終了時刻　</p>
-        </section>
-        <footer class="modal-card-foot">
-            <form action="" method="post" id="delete-form">
-                {% csrf_token %}
-                <button type="button" class="button is-info" id="delete-cancel-button">キャンセル</button>
-                <button type="submit" class="button is-danger">登録</button>
-            </form>
-        </footer>
-    </div>
-</div>
--->
 {% block extrajs %}
-
-  
-
-    
-
 <script>$('#exampleModal').on('show.bs.modal', function (event) {
     //モーダルを開いたボタンを取得
     var button = $(event.relatedTarget)
@@ -160,6 +187,7 @@
     var watasuVal3 = button.data('slot_starttime')
     var watasuVal4 = button.data('slot_endtime')
     var watasuVal5 = button.data('slot_content')
+    var button_val=button.data('submitval')
     //モーダルを取得
     var modal = $(this)
 
@@ -169,6 +197,7 @@
     modal.find('.modal-body span#slot_starttime').text(watasuVal3)
     modal.find('.modal-body span#slot_endtime').text(watasuVal4)
     modal.find('.modal-body span#slot_content').text(watasuVal5)
+    modal.find('.modal-card-foot button#submit').text(button_val)
 });
 
 </script>

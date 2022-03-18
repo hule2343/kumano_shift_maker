@@ -76,7 +76,7 @@ class User(AbstractBaseUser,PermissionsMixin):
     assigned_work=models.ManyToManyField(WorkContent,verbose_name='経験済みの仕事',blank=True)
     assigning_slot=models.ManyToManyField(Slot,blank=True,related_name='slot_users')
     password=models.CharField(max_length=128, verbose_name='password')
-    is_active     = models.BooleanField(default=False)
+    is_active     = models.BooleanField(default=True)
     is_staff      = models.BooleanField(default=False)
     is_superuser  = models.BooleanField(default=False)
 
@@ -93,6 +93,7 @@ class Shift(models.Model):
     slot=models.ManyToManyField(Slot,blank=True,null=True)
     target=models.CharField(max_length=3,choices=Block.choices)
     creater=models.ForeignKey(User,on_delete=models.CASCADE,default=1)
+    is_decided=models.BooleanField(default=False)
 
 class ShiftTemplate(models.Model):
     shift_template_name=models.CharField(max_length=40,verbose_name="テンプレート名")

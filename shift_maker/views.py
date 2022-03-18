@@ -1,10 +1,12 @@
+from dataclasses import fields
 from string import Template
+from urllib import request
 from django import forms
 from django.http import HttpResponseRedirect
 from django.http.response import Http404
-from django.shortcuts import render,get_object_or_404
+from django.shortcuts import render,get_object_or_404,redirect
 from django.urls.base import reverse_lazy
-from django.views.generic import CreateView,FormView,TemplateView
+from django.views.generic import CreateView,FormView,TemplateView,ListView
 from django.urls import reverse
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Count, F
@@ -25,15 +27,15 @@ def shift_recruit_view(request,pk):
     forms=ShiftForm(request.POST or None, instance=shift)
     if forms.is_valid():
         forms.save()
-    days_list=list(set(list(shift.slot.all().values_list('day',flat=True))))
-    time_list=list(set(list(shift.slot.all().values_list('start_time','end_time'))))
+    days_list=sorted(list(set(list(shift.slot.all().values_list('day',flat=True)))))
+    time_list=sorted(list(set(list(shift.slot.all().values_list('start_time','end_time')))))
     sametime_slotlist=[]
-    for time in time_list:
+    for start_time,end_time in time_list:
         time_slot_list=[]
         for day in days_list:
-            slots=shift.slot.filter(day=day,start_time=time[0],end_time=time[1])
-            time_slot_list.append(slots)
-        sametime_slotlist.append((time,time_slot_list))
+            slots=shift.slot.filter(day=day,start_time=start_time,end_time=end_time)
+            time_slot_list.append(slots)       
+        sametime_slotlist.append((start_time,end_time,time_slot_list))
     return render(request,'shift_maker/answer.html',{'forms':forms,'shift':shift,'days_list':days_list,'sametime_slot_list':sametime_slotlist,})
 #回答処理用の関数
 def shift_receive_answer_view(request,pk):
@@ -48,26 +50,54 @@ def shift_receive_answer_view(request,pk):
         print(slot.workname)
     return HttpResponseRedirect(reverse('shift_maker:mypage'))
 
-class RecruitDetailView(DetailView):
-    model=Shift
-    template_name="shift_maker/recruit_detail.html"
+def shift_recruit_detail(request,pk):
+    shift=get_object_or_404(Shift, pk=pk)
+    days_list=sorted(list(set(list(shift.slot.all().values_list('day',flat=True)))))
+    time_list=sorted(list(set(list(shift.slot.all().values_list('start_time','end_time')))))
+    sametime_slotlist=[]
+    for start_time, end_time in time_list:
+        time_slot_list=[]
+        for day in days_list:
+            slots=shift.slot.filter(day=day,start_time=start_time,end_time=end_time)
+            one_table=[]
+            for slot in slots:
+                one_table.append((slot,slot.slot_users.all()))
+            time_slot_list.append(one_table)
+        sametime_slotlist.append((start_time, end_time,time_slot_list))
+    return render(request,'shift_maker/recruit_detail.html',{'shift':shift,'days_list':days_list,'sametime_slot_list':sametime_slotlist})
 
-class CreateSlotView(CreateView):
+
+class CreateSlot(CreateView):
     model=Slot
     fields="__all__"
+    success_url=reverse_lazy("shift_maker:mypage")
 
 class CreateShiftTemplate(CreateView):
     model=ShiftTemplate
     fields="__all__"
+    def form_valid(self, form):
+        object = form.save(commit=False)
+        object.user = self.request.user
+        object.save()
+        return super().form_valid(form)
 
 class CreateShift(CreateView):
     model=Shift
+    fields=['shift_name','first_day','deadline','slot','target']
+    success_url=reverse_lazy("shift_maker:mypage")
+    def form_valid(self, form):
+        object = form.save(commit=False)
+        object.creater = self.request.user
+        object.save()
+        return super().form_valid(form)
 
+    
 class ShiftFormFromTemplateView(FormView):
     template_name='shift_maker/templateconvert.html'
     form_class=ShiftFormFromTemplate
     success_url=reverse_lazy("shift_maker:mypage")
-
+#未決定のスロットが決定済みの欄に行く
+#計算しても加算されない
 class MyPageView(LoginRequiredMixin,TemplateView):
     model=User
     template_name="shift_maker/mypage.html"
@@ -76,9 +106,17 @@ class MyPageView(LoginRequiredMixin,TemplateView):
         context['decided_assign_slot']=self.request.user.assigning_slot.filter(is_decided=True)
         context['undecided_assign_slot']=self.request.user.assigning_slot.filter(is_decided=False)
         context['lack_slot']=Slot.objects.annotate(assigning_number=Count('slot_users')).filter(assigning_number__lt=F('required_number'),is_decided=True)
-        context['shifts']=Shift.objects.all
-        context['made_shifts']=Shift.objects.filter(creater=self.request.user)
+        context['shifts']=Shift.objects.filter(is_decided=False)
+        context['decided_shifts']=Shift.objects.filter(is_decided=True)
+        context['made_shifts']=Shift.objects.filter(creater=self.request.user,is_decided=False)
         return context    
+
+class BlockMemberList(ListView):
+    model=User
+    def get_queryset(self):
+        return User.objects.filter(Block_name=self.request.user.Block_name).order_by('-workload_sum').all()
+
+        
 #シフトのテンプレートからShiftModelを作る関数
 #TODO 不正なフォームへの対応
 def shift_from_template(request):
@@ -88,15 +126,17 @@ def shift_from_template(request):
             selected_shift_template=form.cleaned_data.get('shift_template')
             slots=selected_shift_template.slot_templates.all()
             first_day=form.cleaned_data.get('first_day')
-            print(first_day)
             shift_name=form.cleaned_data.get('shift_name')
             deadline=form.cleaned_data.get('deadline')
             target=form.cleaned_data.get('target')
             creater=request.user
             shift=Shift.objects.create(shift_name=shift_name,first_day=first_day,deadline=deadline,target=target,creater=creater)
             for slot in slots:
-                slot.day=first_day+timedelta(days=slot.days_from_start)
+                slot.day=first_day+timedelta(days=slot.days_from_start)                
                 slot.id=None
+                slot.save()
+                slot.workname=slot.workname+"("+str(slot.id)+")"
+                slot.is_decided=False
                 slot.save()
                 shift.slot.add(slot)
             return HttpResponseRedirect(reverse('shift_maker:mypage'))
@@ -119,6 +159,7 @@ def shift_calculate(request,pk):
     #おかしくなっている可能性あり
     slots=shift.slot.all()
     slot_df=read_frame(slots,fieldnames=["required_number","content__workload","content__id"],index_col="id")
+    print(slot_df)
     users=User.objects.filter(Block_name=shift.target)
     users_df=read_frame(users,fieldnames=["workload_sum"],index_col="id")
     user_ids=users.values_list("id",flat=True)
@@ -157,9 +198,11 @@ def shift_calculate(request,pk):
         k += lpDot(h, n) <= 0
     #同じ時間帯の枠に同じ人が入らないようにする制約条件    
     #エラー発生中
-    print(overlapping_pairs)
     for index,r in var.iteritems():
+        print(r)
+        print(overlapping_pairs)
         for i in range(len(overlapping_pairs)):
+            print(r[overlapping_pairs[i][0]],r[overlapping_pairs[i][1]])
             k+=r[overlapping_pairs[i][0]]+r[overlapping_pairs[i][1]]<=1
     df['V_need_dif_over']=addvars(len(slot_df.index))
     df['V_need_dif_shortage']=addvars(len(slot_df.index))
@@ -181,41 +224,53 @@ def shift_calculate(request,pk):
     +C_experience*lpSum(df.V_experience)\
     +C_minmax*V_worksum_diff
     k.solve()
-    print(var)
     result_np= np.vectorize(value)(var).astype(int)
     result=pd.DataFrame(result_np,index=slot_df.index,columns=user_list)
+    print(result)
+    print(user_list)
     for column in user_list:
         user=User.objects.get(id=column)
-        user.assigning_slot.clear()
         for index in result.index:
-            if result.at[index,column]==1:
+            if result.at[index,column]==0:
                 slot=Slot.objects.get(id=index)
-                user.assigning_slot.add(slot)
-                user.workload_sum+=slot_df.at[index,"content__workload"]
-                user.save()
+                user.assigning_slot.remove(slot)
+            else:
+                slot=Slot.objects.get(id=index)
+                workload=Slot.objects.values_list("content__workload",flat=True).get(id=index)
+                print(workload)
+                print(user.account_name)
+                print("sita@")
+                print(user.workload_sum)
+                print("ue@")
+                user.workload_sum+=workload
+                user.save(update_fields=["workload_sum"])
+        print(user.account_name,user.workload_sum)
     for slot in slots:
         slot.is_decided=True  
     Slot.objects.bulk_update(slots,["is_decided"])
+    shift.is_decided=True
+    shift.save()
+    print(users.values_list("workload_sum"))
     return HttpResponseRedirect(reverse('shift_maker:result_schedule' ,args=[shift.pk]))
 
 def shift_calculate_result(request,pk):
     shift=get_object_or_404(Shift, pk=pk)
-    days_list=list(set(list(shift.slot.all().values_list('day',flat=True)))).sort()
-    time_list=list(set(list(shift.slot.all().values_list('start_time','end_time')))).sort(key=lambda x: x[0])
+    days_list=sorted(list(set(list(shift.slot.all().values_list('day',flat=True)))))
+    time_list=sorted(list(set(list(shift.slot.all().values_list('start_time','end_time')))))
     sametime_slotlist=[]
-    for time in time_list:
+    for start_time, end_time in time_list:
         time_slot_list=[]
         for day in days_list:
-            slots=shift.slot.filter(day=day,start_time=time[0],end_time=time[1])
+            slots=shift.slot.filter(day=day,start_time=start_time,end_time=end_time)
+            one_table=[]
             for slot in slots:
-                time_slot_list.append((slot,slot.slot_users.all()))
-        sametime_slotlist.append((time,time_slot_list))
-    return render(request,'shift_maker/shift_result.html',{'shift':shift,'days_list':days_list,'sametime_slot_list':sametime_slotlist})    
+                one_table.append((slot,slot.slot_users.all()))
+            time_slot_list.append(one_table)
+        sametime_slotlist.append((start_time, end_time,time_slot_list))
+    return render(request,'shift_maker/shift_result.html',{'shift':shift,'days_list':days_list,'sametime_slot_list':sametime_slotlist})
+      
 
-# 人数不足スロットの表示・登録処理　
-class LackSlotDetailView(DetailView):
-    model=Slot
-    template_name="shift_maker/lack_slot_detail.html"
+# 人数不足スロットの登録処理　
 
 #テスト１
 def assign_lack_slot(request,pk):
@@ -232,9 +287,6 @@ def assign_lack_slot(request,pk):
     user.save()
     return HttpResponseRedirect(reverse('shift_maker:mypage'))
 
-class AssigningSlotDetailView(DetailView):
-    model=Slot
-    template_name="shift_maker/decided_slot_detail.html"
 
 # 登録済みスロットの登録解除
 def delete_assigned_slot(request,pk):
@@ -247,9 +299,6 @@ def delete_assigned_slot(request,pk):
     return HttpResponseRedirect(reverse('shift_maker:mypage'))
 
 # 予約済みスロットの予約解除
-class BookingSlotDetailView(DetailView):
-    model=Slot
-    template_name="shift_maker/booking_slot_detail.html"
 
 def delete_booking_slot(request,pk):
     slot=Slot.objects.get(pk=pk)
