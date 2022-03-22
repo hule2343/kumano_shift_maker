@@ -1,1 +1,5 @@
-"db.sqlite3" 
+*.pyc
+*.log
+__pycache__
+db.sqlite3
+/static
