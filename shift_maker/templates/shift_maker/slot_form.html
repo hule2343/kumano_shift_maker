@@ -1,9 +1,0 @@
-{% extends 'shift_maker/base.html' %}
-
-{% block body-contents %}
-<form action="{% url 'shift_maker:createslot' %}" method="post">
-    {% csrf_token %}
-    {{ form.as_p}}
-    <input type="submit" value="作成">
-</form>
-{% endblock %}
