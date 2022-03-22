@@ -8,6 +8,7 @@ import datetime
 class WorkContent(models.Model):
     contentname=models.CharField(max_length=25)
     workload=models.IntegerField(default=0)
+    detail=models.TextField(verbose_name='テキスト',blank=True)
     def __str__(self):
         return self.contentname
 
@@ -20,6 +21,7 @@ class Slot(models.Model):
     required_number=models.PositiveIntegerField(default=1)
     content=models.ForeignKey(WorkContent,on_delete=models.SET_DEFAULT,default='無し')
     is_decided=models.BooleanField(default=False)#既に募集締め切りが過ぎた枠かどうか
+    for_template=models.BooleanField(default=False)
     def __str__(self):
         return self.workname
 

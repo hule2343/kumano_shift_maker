@@ -13,6 +13,8 @@ urlpatterns = [
     path('mypage/recruit/<int:pk>/calculate/',views.shift_calculate,name='scheduling'),
     path('mypage/recruit/<int:pk>/calculate/result',views.shift_calculate_result,name='result_schedule'),
     path('mypage/memberlist/',views.BlockMemberList.as_view(),name='memberlist'),
+    path('mypage/contentlist/',views.WorkContentList.as_view(),name='contentlist'),
+    path('mypage/contentlist/assign/<int:pk>/',views.assign_content,name='assign_content'),
     path('mypage/createpage/',TemplateView.as_view(template_name='shift_maker/createpage.html'),name='create_page'),
     path('mypage/createpage/createslot/',views.CreateSlot.as_view(),name='createslot'),
     path('mypage/createpage/createshift/',views.CreateShift.as_view(),name='createshift'),

@@ -33,11 +33,20 @@
             <div class="dropdown-menu" aria-labelledby="dropdown01">
               <a class="dropdown-item" href="{% url 'shift_maker:logout' %}">ログアウト</a>
               <a class="dropdown-item" href="{% url 'shift_maker:memberlist' %}">同ブロックの人たち</a>
+              <a class="dropdown-item" href="{% url 'shift_maker:contentlist' %}">仕事内容一覧</a>
             </div>
           </li>
         </ul>
       </div>
     </nav>
+    {% if messages %}
+    <ul class="messages_ul">
+      {% for message in messages %}
+        <li class="alert{% if message.tags %} alert-{{ message.tags }}{% endif %} alert-dismissible" role="alert">
+          <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
   </header>
 
   <main role="main" class="container">

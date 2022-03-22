@@ -11,7 +11,7 @@ from django.urls import reverse
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Count, F
 from django.views.generic.detail import DetailView
-from .models import Slot,Shift,User,ShiftTemplate,Block
+from .models import Slot,Shift,User,ShiftTemplate,Block,WorkContent
 from .forms import ShiftForm, ShiftFormFromTemplate
 from datetime import timedelta
 import pandas as pd
@@ -20,6 +20,8 @@ from ortoolpy.etc import addvar
 from pulp import *
 from ortoolpy import addvars, addbinvars
 from django_pandas.io import read_frame 
+import datetime
+from django.contrib import messages
 # Create your views here.
 #回答フォームのビュー
 def shift_recruit_view(request,pk):
@@ -89,13 +91,24 @@ class CreateShift(CreateView):
         object = form.save(commit=False)
         object.creater = self.request.user
         object.save()
+        Slot.objects.filter(day__lt=datetime.datetime.today()).delete()
         return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form'].fields['slot'].queryset = Slot.objects.filter(for_template=False)    
+        return context
 
     
 class ShiftFormFromTemplateView(FormView):
     template_name='shift_maker/templateconvert.html'
     form_class=ShiftFormFromTemplate
     success_url=reverse_lazy("shift_maker:mypage")
+    def form_valid(self, form):
+        Slot.object.filter(day__lt=datetime.datetime.today()).delete()
+        return super().form_valid(form)
+
+
 #未決定のスロットが決定済みの欄に行く
 #計算しても加算されない
 class MyPageView(LoginRequiredMixin,TemplateView):
@@ -116,7 +129,11 @@ class BlockMemberList(ListView):
     def get_queryset(self):
         return User.objects.filter(Block_name=self.request.user.Block_name).order_by('-workload_sum').all()
 
-        
+class WorkContentList(ListView):
+    model=WorkContent
+
+    
+
 #シフトのテンプレートからShiftModelを作る関数
 #TODO 不正なフォームへの対応
 def shift_from_template(request):
@@ -139,16 +156,16 @@ def shift_from_template(request):
                 slot.is_decided=False
                 slot.save()
                 shift.slot.add(slot)
+            messages.success(request,'作成成功')
             return HttpResponseRedirect(reverse('shift_maker:mypage'))
         elif request.method=="GET":
-            print("Get")
+            messages.error(request,'不正なフォームです')
             return HttpResponseRedirect(reverse('shift_maker:shift_create_form_template'))
         else:
-            for i in form:
-                print(i)
+            messages.error(request,'不正なフォームです')
             return HttpResponseRedirect(reverse('shift_maker:shift_create_form_template'))
     else:
-        print("NOt Post")
+        messages.error(request,'不正なフォームです')
         return HttpResponseRedirect(reverse('shift_maker:shift_create_form_template'))
 #制約条件ごとのテストは完了
 def shift_calculate(request,pk):
@@ -237,20 +254,14 @@ def shift_calculate(request,pk):
             else:
                 slot=Slot.objects.get(id=index)
                 workload=Slot.objects.values_list("content__workload",flat=True).get(id=index)
-                print(workload)
-                print(user.account_name)
-                print("sita@")
-                print(user.workload_sum)
-                print("ue@")
                 user.workload_sum+=workload
                 user.save(update_fields=["workload_sum"])
-        print(user.account_name,user.workload_sum)
     for slot in slots:
         slot.is_decided=True  
     Slot.objects.bulk_update(slots,["is_decided"])
     shift.is_decided=True
     shift.save()
-    print(users.values_list("workload_sum"))
+    messages.success(request,'シフト作成完了')
     return HttpResponseRedirect(reverse('shift_maker:result_schedule' ,args=[shift.pk]))
 
 def shift_calculate_result(request,pk):
@@ -270,6 +281,13 @@ def shift_calculate_result(request,pk):
     return render(request,'shift_maker/shift_result.html',{'shift':shift,'days_list':days_list,'sametime_slot_list':sametime_slotlist})
       
 
+def assign_content(request,pk):
+    content=WorkContent.objects.get(pk=pk)
+    user=request.user
+    user.assigned_work.add(content)
+    messages.success(request,'%s 登録完了' % content.contentname)
+    return HttpResponseRedirect(reverse('shift_maker:contentlist'))
+
 # 人数不足スロットの登録処理　
 
 #テスト１
@@ -277,14 +295,17 @@ def assign_lack_slot(request,pk):
     slot=Slot.objects.get(pk=pk)
     user=request.user
     if slot in user.assigning_slot.all():
+        messages.warning(request,'既にこの仕事に入っています')
         return HttpResponseRedirect(reverse('shift_maker:mypage'))
     workload=Slot.objects.values_list("content__workload",flat=True).get(pk=pk)
     user.assigning_slot.add(slot)
     if overlapping_slots(user.assigning_slot.all()):
         user.assigning_slot.remove(slot)
+        messages.warning(request,'同じ時間帯に仕事に入っています')
         return HttpResponseRedirect(reverse('shift_maker:mypage'))
     user.workload_sum+=workload
     user.save()
+    messages.success(request,'%s 登録しました' % slot.workname)
     return HttpResponseRedirect(reverse('shift_maker:mypage'))
 
 
@@ -296,6 +317,7 @@ def delete_assigned_slot(request,pk):
     user.assigning_slot.remove(slot)
     user.workload_sum-=workload
     user.save()
+    messages.success(request,'%s 登録解除しました' % slot.workname)
     return HttpResponseRedirect(reverse('shift_maker:mypage'))
 
 # 予約済みスロットの予約解除
@@ -305,6 +327,7 @@ def delete_booking_slot(request,pk):
     user=request.user
     user.assigning_slot.remove(slot)
     user.save()
+    messages.success(request,'%s 登録解除しました' % slot.workname)
     return HttpResponseRedirect(reverse('shift_maker:mypage'))
 
 def overlapping_slots(slots):
