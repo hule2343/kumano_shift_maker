@@ -1,0 +1,25 @@
+{% extends 'shift_maker/base.html' %}
+
+{% block body-contents %}
+<table class="table">
+    <tr>
+        <th>時間</th>
+        {% for day in days_list %}
+            <th>{{day|date:"n月j日"}}</th>
+        {% endfor %}
+    </tr>
+    {% for start_time, end_time, time_slot_list in sametime_slot_list %}
+    <tr>
+        <td>{{ start_time|date:"G時i分" }}～{{ end_time|date:"G時i分" }}</td>
+        {% for one_table in time_slot_list %}
+        <td>{% for slot, slot_users in one_table %}
+            {{slot.workname}}
+        {% for user in slot_users %}
+            <p>{{user.account_name}}</p>
+        {% endfor %}{% endfor %}</td>
+        {% endfor %}
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}
+

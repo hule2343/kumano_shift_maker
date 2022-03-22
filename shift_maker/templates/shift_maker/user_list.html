@@ -1,0 +1,9 @@
+{% extends 'shift_maker/base.html' %}
+
+{% block body-contents %}
+<ul>
+    {% for user in object_list%}
+    <li>{{user.account_name}} {{user.workload_sum}}</li>
+    {% endfor %}
+</ul>
+{% endblock %}

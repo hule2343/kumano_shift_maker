@@ -1,0 +1,90 @@
+{% extends 'shift_maker/base.html' %}
+
+{% block body-contents %}
+
+<h2>仕事内容一覧</h2>
+    <div class="container-fluid">
+    {% for content in object_list %}
+        <div class="card">
+          <div class="card-body">
+            <span class="card-title">{{ content.contentname }}</span>
+            <span class="card-text">{{content.workload}}ポイント</span>
+            <button type="button" class="btn btn-primary delete-modal-button"
+    data-toggle="modal"
+    data-target="#exampleModal"
+    data-workname="{{content.contentname}}"
+    data-workload="{{content.workload}}"
+    data-url="{% url 'shift_maker:assign_content' content.id %}"
+    data-text="{{content.detail}}">詳細</button>
+          </div>
+      </div>
+    {% endfor %}
+    </div>
+
+    <div class="modal" style="z-index: 1500" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-background"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title">確認</p>
+            </header>
+            <section class="modal-card-body">
+                <div class="modal-body">
+                    <div class="container-fluid">
+                    <div class="card card-block h-50">
+                    <div class="card-body">    
+                    <div class="card-title"><p>仕事名　<span id="workname"></span></p></div>
+                    <p>ポイント　<span id="workload"></span></p>
+                    <div class="card-text"><p>説明　<span id="text"></span></p></div>
+                    </div>
+                    </div>
+                    </div>
+                </div>                
+            </section>
+            <footer class="modal-card-foot">
+                <form action="" method="post" id="delete-form">
+                    {% csrf_token %}
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">キャンセル</button>
+                    <button id="submit" type="submit" class="btn btn-primary">経験者です！</button>
+                </form>
+            </footer>
+        </div>
+</div>
+{% endblock %}
+
+{% block extrajs %}
+<script>$('#exampleModal').on('show.bs.modal', function (event) {
+    //モーダルを開いたボタンを取得
+    var button = $(event.relatedTarget)
+    var watasuVal = button.data('workname')
+    var watasuVal2 = button.data('workload')
+    var watasuVal3 = button.data('text')
+
+    //モーダルを取得
+    var modal = $(this)
+
+    //受け取った値をspanタグのとこに表示
+    modal.find('.modal-body span#workname').text(watasuVal)
+    modal.find('.modal-body span#workload').text(watasuVal2)
+    modal.find('.modal-body span#text').text(watasuVal3)
+});
+
+</script>
+<script>
+
+    const deleteForm = document.getElementById('delete-form');
+    const modal = document.getElementById('exampleModal');
+    const deleteModalButtons = document.getElementsByClassName('delete-modal-button');
+
+    if (modal == null) {console.log('modal')};
+    if (deleteModalButtons == null) {console.log('deleteModalButtons')};
+
+    for (const button of deleteModalButtons) {
+        button.addEventListener('click', () => {
+            deleteForm.action = button.dataset.url;
+        });
+        
+        
+    }
+</script>
+
+{% endblock %}
