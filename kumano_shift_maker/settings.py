@@ -34,11 +34,11 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'shift_maker.apps.Shift_makerConfig',
-    'pandas'
-    'numpy'
-    'ortoolpy'
-    'django-pandas'
-    'PuLP'
+    'pandas',
+    'numpy',
+    'ortoolpy',
+    'django-pandas',
+    'PuLP',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
