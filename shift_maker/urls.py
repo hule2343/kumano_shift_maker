@@ -25,5 +25,7 @@ urlpatterns = [
     path('mypage/delete/<int:pk>/delete/',views.delete_assigned_slot,name='slot_delete'),
     path('mypage/delete_booking/<int:pk>/delete/',views.delete_booking_slot,name='booking_slot_delete'),
     path('login/', LoginView.as_view(template_name='admin/login.html'), name='login'),
-    path('logout/', LogoutView.as_view(), name='logout')
+    path('logout/', LogoutView.as_view(), name='logout'),
+    path('password_change/', views.PasswordChange.as_view(), name='password_change'),
+    path('password_change/done/', views.PasswordChangeDone.as_view(), name='password_change_done'),
 ]

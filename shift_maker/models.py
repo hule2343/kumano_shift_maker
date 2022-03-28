@@ -96,7 +96,11 @@ class Shift(models.Model):
     target=models.CharField(max_length=3,choices=Block.choices)
     creater=models.ForeignKey(User,on_delete=models.CASCADE,default=1)
     is_decided=models.BooleanField(default=False)
+    def __str__(self):
+        return self.shift_name
 
 class ShiftTemplate(models.Model):
     shift_template_name=models.CharField(max_length=40,verbose_name="テンプレート名")
     slot_templates=models.ManyToManyField(Slot,blank=True,null=True,)
+    def __str__(self):
+        return self.shift_template_name

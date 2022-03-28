@@ -6,13 +6,14 @@ from django.http import HttpResponseRedirect
 from django.http.response import Http404
 from django.shortcuts import render,get_object_or_404,redirect
 from django.urls.base import reverse_lazy
-from django.views.generic import CreateView,FormView,TemplateView,ListView
+from django.views.generic import CreateView,FormView,TemplateView,ListView,UpdateView
 from django.urls import reverse
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.views import PasswordChangeView, PasswordChangeDoneView
 from django.db.models import Count, F
 from django.views.generic.detail import DetailView
 from .models import Slot,Shift,User,ShiftTemplate,Block,WorkContent
-from .forms import ShiftForm, ShiftFormFromTemplate
+from .forms import ShiftForm, ShiftFormFromTemplate,MyPasswordChangeForm
 from datetime import timedelta
 import pandas as pd
 import numpy as np
@@ -99,7 +100,29 @@ class CreateShift(CreateView):
         context['form'].fields['slot'].queryset = Slot.objects.filter(for_template=False)    
         return context
 
-    
+class UserUpdate(UpdateView):
+    template_name = 'shift_maker/member_update_form.html'
+    model = User
+    fields = ['Block_name', 'room_number', 'password']
+ 
+    def get_success_url(self):
+        return reverse('shift_maker:mypage')
+ 
+    def get_form(self):
+        form = super(UserUpdate, self).get_form()
+        form.fields['Block_name'].label = 'ブロック名'
+        form.fields['room_number'].label = '部屋番号'
+        form.fields['password'].label = 'パスワード'
+        return form
+
+class PasswordChange(PasswordChangeView):
+    form_class = MyPasswordChangeForm
+    success_url = reverse_lazy('shift_maker:password_change_done')
+    template_name = 'shift_maker/password_change.html'
+
+class PasswordChangeDone(PasswordChangeDoneView):
+    template_name = 'shift_maker/password_change_done.html'
+
 class ShiftFormFromTemplateView(FormView):
     template_name='shift_maker/templateconvert.html'
     form_class=ShiftFormFromTemplate
@@ -132,7 +155,7 @@ class BlockMemberList(ListView):
 class WorkContentList(ListView):
     model=WorkContent
 
-    
+
 
 #シフトのテンプレートからShiftModelを作る関数
 #TODO 不正なフォームへの対応
