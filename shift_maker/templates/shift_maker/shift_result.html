@@ -14,8 +14,12 @@
         {% for one_table in time_slot_list %}
         <td>{% for slot, slot_users in one_table %}
             {{slot.workname}}
-        {% for user in slot_users %}
-            <p>{{user.account_name}}</p>
+        {% for assigning_user in slot_users %}
+            {% if assigning_user == user %}
+            <p class="text-danger">{{assigning_user.account_name}}</p>
+            {% else %}
+            <p>{{assigning_user.account_name}}</p>
+            {% endif %}
         {% endfor %}{% endfor %}</td>
         {% endfor %}
     </tr>

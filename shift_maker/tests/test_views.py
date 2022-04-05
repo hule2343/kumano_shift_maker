@@ -5,7 +5,10 @@ from shift_maker.models import WorkContent, User, Slot, Shift
 from django.urls import reverse
 import shift_maker.views as views
 import datetime
+from django.contrib.messages.storage.fallback import FallbackStorage
+
 class Assign_lack_slot_TestCase(TestCase):
+    
     def setUp(self):
         self.user=User.objects.create(account_name="testuser1")
         self.workcontent=WorkContent.objects.create(contentname="testcontent",workload=3)
@@ -13,6 +16,10 @@ class Assign_lack_slot_TestCase(TestCase):
         self.slot2=Slot.objects.create(workname="testSlot2",content=self.workcontent)
         self.slot3=Slot.objects.create(workname="testSlot3",content=self.workcontent,)
         self.factory=RequestFactory()
+        setattr(request, 'session', 'session')
+        messages = FallbackStorage(request)
+        setattr(request, '_messages', messages)
+    
     def test_assign_lack_slot_twice(self):
         self.request=self.factory.post(reverse("shift_maker:assign_lack",args=[self.slot.pk]))
         self.request.user=self.user
@@ -20,6 +27,7 @@ class Assign_lack_slot_TestCase(TestCase):
         views.assign_lack_slot(self.request,self.slot.pk)
         self.assertEqual(self.user.workload_sum, self.workcontent.workload)
     # Setup で作られたインスタンスはメソッドごとに初期化されるっぽい？
+    
     def test_assign_lack_slot_sametime(self):
         print(self.slot.day)        
         self.request=self.factory.post(reverse("shift_maker:assign_lack",args=[self.slot2.pk]))
@@ -31,6 +39,7 @@ class Assign_lack_slot_TestCase(TestCase):
         print(self.user.assigning_slot.all().count())
         self.assertEqual(1,self.user.assigning_slot.all().count())
 
+#errorその１
 class Workload_sum_Test(TestCase):
     def setUp(self):
         self.user=User.objects.create(account_name="testuser",Block_name="b3")
@@ -89,6 +98,7 @@ class shift_calculate_Test(TestCase):
         views.shift_calculate(self.request,self.shift.pk)
         self.assertQuerysetEqual(self.slot.slot_users.all(),user1)
         self.assertQuerysetEqual(self.slot2.slot_users.all(),user2)
+    #error その2
     def test_workload_equality(self):
         self.workcontent.workload=1
         self.workcontent.save()
