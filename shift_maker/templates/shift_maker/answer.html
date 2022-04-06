@@ -19,7 +19,7 @@
             {% else %}
             {% for slot in slots %}
                 <td> <input type="checkbox" name="slot" id="slot{{ forloop.counter }}" value="{{ slot.id }}">
-                    <label for="slot{{ forloop.counter }}">{{ slot.workname }}</label><br></td>
+                    <label for="slot{{ forloop.counter }}" id="slot_label{{ forloop.counter }}">{{ slot.workname }}</label><br></td>
             {% endfor %}
             {% endif %}
 
