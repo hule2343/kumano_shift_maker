@@ -12,18 +12,19 @@
     <tr>
         <td>{{ start_time|date:"G時i分" }}～{{ end_time|date:"G時i分" }}</td>
         {% for one_table in time_slot_list %}
+        <form action="?" method="post" id="assign_form">
+        {% csrf_token %}
         <td>{% for slot, slot_users in one_table %}
             {{slot.workname}}
         {% for assigning_user in slot_users %}
             {% if assigning_user == user %}
             <p class="text-danger">{% if slot.content in assigning_user.assigned_work.all %}&#10004;{% endif %}{{assigning_user.account_name}}</p>
             {% else %}
-            <p>{% if slot.content in assigning_user.assigned_work.all %}&#10004;{% endif %}{{assigning_user.account_name}}</p>
+            <p>{% if slot.content in assigning_user.assigned_work.all %}&#10004;{% endif %}{{assigning_user.account_name}}
+            <button id="submit" type="submit" class="btn btn-success btn-sm" formaction="{% url 'shift_maker:replace' slot_id=slot.id user_id=assigning_user.id %}">&#8596;交代</button></p>
             {% endif %}
         {% endfor %}
-        <form action="{% url 'shift_maker:assign' slot.id %}" method="post" id="assign_form">
-        {% csrf_token %}
-            <button id="submit" type="submit" class="btn btn-primary">+参加</button>
+            <button id="submit" type="submit" class="btn btn-primary btn-sm" formaction="{% url 'shift_maker:assign' slot.id %}">+参加</button>
         </form>
         {% endfor %}</td>
         {% endfor %}
