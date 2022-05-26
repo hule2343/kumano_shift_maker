@@ -16,9 +16,9 @@
             {{slot.workname}}
         {% for assigning_user in slot_users %}
             {% if assigning_user == user %}
-            <p class="text-danger">{{assigning_user.account_name}}</p>
+            <p class="text-danger">{% if slot.content in assigning_user.assigned_work.all %}&#10004;{% endif %}{{assigning_user.account_name}}</p>
             {% else %}
-            <p>{{assigning_user.account_name}}</p>
+            <p>{% if slot.content in assigning_user.assigned_work.all %}&#10004;{% endif %}{{assigning_user.account_name}}</p>
             {% endif %}
         {% endfor %}
         <form action="{% url 'shift_maker:assign' slot.id %}" method="post" id="assign_form">
