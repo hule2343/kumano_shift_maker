@@ -25,9 +25,10 @@
     </tr>
     {% endfor %}
 </table>
-
+{% if user.account_name == shift.creater.account_name %}
 <form action="{% url 'shift_maker:scheduling' shift.id %}" method="post">
     {% csrf_token %}
     <input type="submit" value="計算">
 </form>
+{% endif %}
 {% endblock %}

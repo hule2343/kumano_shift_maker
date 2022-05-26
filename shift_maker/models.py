@@ -45,7 +45,7 @@ class UserManager(BaseUserManager):
     def _create_user(self, account_name,password,**extra_fields):
         if not account_name:
             raise ValueError('Users must have an name')
-        account_name = self.model.normalize_username(account_name)        
+        account_name = self.model.normalize_username(account_name)
         user = self.model(account_name=account_name,  **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
@@ -68,7 +68,7 @@ class UserManager(BaseUserManager):
 
         return self._create_user(account_name , password, **extra_fields)#
 
-    
+
 
 class User(AbstractBaseUser,PermissionsMixin):
     Block_name=models.CharField(max_length=3,choices=Block.choices,blank=True)

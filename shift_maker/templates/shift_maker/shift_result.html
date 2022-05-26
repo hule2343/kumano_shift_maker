@@ -20,7 +20,12 @@
             {% else %}
             <p>{{assigning_user.account_name}}</p>
             {% endif %}
-        {% endfor %}{% endfor %}</td>
+        {% endfor %}
+        <form action="{% url 'shift_maker:assign' slot.id %}" method="post" id="assign_form">
+        {% csrf_token %}
+            <button id="submit" type="submit" class="btn btn-primary">+参加</button>
+        </form>
+        {% endfor %}</td>
         {% endfor %}
     </tr>
     {% endfor %}

@@ -29,11 +29,15 @@ from ortoolpy import addvars, addbinvars
 from django_pandas.io import read_frame
 import datetime
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 
 # Create your views here.
 # 回答フォームのビュー
+@login_required
 def shift_recruit_view(request, pk):
     shift = get_object_or_404(Shift, pk=pk)
+    if shift.is_decided:
+        return HttpResponseRedirect(reverse("shift_maker:result_schedule", args=[shift.pk]))
     forms = ShiftForm(request.POST or None, instance=shift)
     if forms.is_valid():
         forms.save()
@@ -174,7 +178,6 @@ class ShiftFormFromTemplateView(FormView):
         return super().form_valid(form)
 
 
-# 未決定のスロットが決定済みの欄に行く
 # 計算しても加算されない
 class MyPageView(LoginRequiredMixin, TemplateView):
     model = User
@@ -196,6 +199,7 @@ class MyPageView(LoginRequiredMixin, TemplateView):
         context["made_shifts"] = Shift.objects.filter(
             creater=self.request.user, is_decided=False
         )
+        context["others_shifts"]=Shift.objects.exclude(creater=self.request.user,is_decided=True)
         return context
 
 
@@ -306,9 +310,9 @@ def shift_calculate(request, pk):
     shift_rev = df[df.columns].apply(lambda r: 1 - r[df.columns], 1)
     k = LpProblem()
 
-    C_need_diff_over = 11
+    C_need_diff_over = 10
     C_need_diff_shortage = 1000
-    C_experience = 10
+    C_experience = 11
     C_minmax = 10
     # 希望していない枠に入らないようにする制約条件
     for (_, h), (_, n) in zip(shift_rev.iterrows(), var.iterrows()):
@@ -373,7 +377,7 @@ def shift_calculate(request, pk):
     messages.success(request, "シフト作成完了", fail_silently=True)
     return HttpResponseRedirect(reverse("shift_maker:result_schedule", args=[shift.pk]))
 
-
+@login_required
 def shift_calculate_result(request, pk):
     shift = get_object_or_404(Shift, pk=pk)
     days_list = sorted(list(set(list(shift.slot.all().values_list("day", flat=True)))))
@@ -428,6 +432,23 @@ def assign_lack_slot(request, pk):
     user.save()
     messages.success(request, "%s 登録しました" % slot.workname, fail_silently=True)
     return HttpResponseRedirect(reverse("shift_maker:mypage"))
+
+def assign_slot(request,pk):
+    slot = Slot.objects.get(pk=pk)
+    user = request.user
+    if slot in user.assigning_slot.all():
+        messages.warning(request, "既にこの仕事に入っています", fail_silently=True)
+        return redirect(request.META['HTTP_REFERER'])
+    workload = Slot.objects.values_list("content__workload", flat=True).get(pk=pk)
+    user.assigning_slot.add(slot)
+    if overlapping_slots(user.assigning_slot.all()):
+        user.assigning_slot.remove(slot)
+        messages.warning(request, "同じ時間帯に仕事に入っています", fail_silently=True)
+        return redirect(request.META['HTTP_REFERER'])
+    user.workload_sum += workload
+    user.save()
+    messages.success(request, "%s 登録しました" % slot.workname, fail_silently=True)
+    return redirect(request.META['HTTP_REFERER'])
 
 
 # 登録済みスロットの登録解除

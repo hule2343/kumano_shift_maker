@@ -11,10 +11,10 @@
     <h2>今期の仕事量</h2>
     <h3>{{user.workload_sum}}</h3>
 </u>
-    
+
     <h2>{{ user.account_name }}さんが入るシフト枠</h2>
     <div class="container-fluid">
-    <div class="row flex-row flex-nowrap overflow-auto">    
+    <div class="row flex-row flex-nowrap overflow-auto">
     {% for slot in decided_assign_slot %}
     <div class="col-5">
         <div class="card card-block h-100">
@@ -27,9 +27,9 @@
     data-target="#exampleModal"
     data-slotname="{{slot.workname}}"
     data-url="{% url 'shift_maker:slot_delete' slot.id %}"
-    data-slot_day="{{slot.day|date:'Y年n月j日'}}" 
+    data-slot_day="{{slot.day|date:'Y年n月j日'}}"
     data-slot_starttime="{{slot.start_time|date:'G時i分'}}"
-    data-slot_endtime="{{slot.end_time|date:'G時i分'}}" 
+    data-slot_endtime="{{slot.end_time|date:'G時i分'}}"
     data-submitval="シフトをキャンセル"
     data-slot_content="{{slot.content.contentname}}">詳細</button>
           </div>
@@ -44,7 +44,7 @@
 <section class="section">
 <h2>{{ user.account_name }}さんが回答したシフト枠</h2>
 <div class="container-fluid">
-    <div class="row flex-row flex-nowrap overflow-auto">    
+    <div class="row flex-row flex-nowrap overflow-auto">
     {% for slot in undecided_assign_slot %}
     <div class="col-5">
         <div class="card card-block h-100">
@@ -57,9 +57,9 @@
     data-target="#exampleModal"
     data-slotname="{{slot.workname}}"
     data-url="{% url 'shift_maker:booking_slot_delete' slot.id %}"
-    data-slot_day="{{slot.day|date:'Y年n月j日'}}" 
+    data-slot_day="{{slot.day|date:'Y年n月j日'}}"
     data-slot_starttime="{{slot.start_time|date:'G時i分'}}"
-    data-slot_endtime="{{slot.end_time|date:'G時i分'}}" 
+    data-slot_endtime="{{slot.end_time|date:'G時i分'}}"
     data-submitval="シフトをキャンセル"
     data-slot_content="{{slot.content.contentname}}">詳細</button>
           </div>
@@ -73,7 +73,7 @@
 <section class="section">
 <h2>人数が不足中のシフト枠</h2>
 <div class="container-fluid">
-    <div class="row flex-row flex-nowrap overflow-auto">    
+    <div class="row flex-row flex-nowrap overflow-auto">
     {% for slot in lack_slot%}
     <div class="col-5">
         <div class="card card-block h-100">
@@ -86,9 +86,9 @@
     data-target="#exampleModal"
     data-slotname="{{slot.workname}}"
     data-url="{% url 'shift_maker:assign_lack' slot.id %}"
-    data-slot_day="{{slot.day|date:'Y年n月j日'}}" 
+    data-slot_day="{{slot.day|date:'Y年n月j日'}}"
     data-slot_starttime="{{slot.start_time|date:'G時i分'}}"
-    data-slot_endtime="{{slot.end_time|date:'G時i分'}}" 
+    data-slot_endtime="{{slot.end_time|date:'G時i分'}}"
     data-submitval="シフトを入れる"
     data-slot_content="{{slot.content.contentname}}">詳細</button>
           </div>
@@ -103,9 +103,9 @@
     <h2>応募したスロット</h2>
     {% for slot in undecided_assign_slot %}
         <li>{{ slot.workname }}</li>
-        <button type="button" class="button is-danger delete-modal-button" data-toggle="modal" data-target="#decidedModal" 
+        <button type="button" class="button is-danger delete-modal-button" data-toggle="modal" data-target="#decidedModal"
     data-slot_name="{{slot.workname}}"data-slot-day="{{slot.day}}" data-slot-starttime="{{slot.start_time}}"
-    data-slot-endtime="{{slot.end_time}}" data-slot-content="{{slot.content.contentname}}" 
+    data-slot-endtime="{{slot.end_time}}" data-slot-content="{{slot.content.contentname}}"
     data-url="{% url 'shift_maker:booking_slot_delete' slot.id %}">ボタンで開く</button>
     {% endfor %}
 </ul>
@@ -114,9 +114,9 @@
     {% for slot in lack_slot %}
     <li><a href=>{{ slot.workname }}</a></li>
     <li>{{slot.required_number|add:slot.assigning_number}}</li>
-    <button type="button" class="button is-danger delete-modal-button" data-toggle="modal" data-target="#decidedModal" 
+    <button type="button" class="button is-danger delete-modal-button" data-toggle="modal" data-target="#decidedModal"
     data-slot_name="{{slot.workname}}"data-slot-day="{{slot.day}}" data-slot-starttime="{{slot.start_time}}"
-    data-slot-endtime="{{slot.end_time}}" data-slot-content="{{slot.content.contentname}}" 
+    data-slot-endtime="{{slot.end_time}}" data-slot-content="{{slot.content.contentname}}"
     data-url="{% url 'shift_maker:assign_lack' slot.id %}">ボタンで開く</button>
     {% endfor %}
 </ul>
@@ -142,6 +142,13 @@
     <li><a href="{% url 'shift_maker:recruit_detail' shift.id %}">{{shift.shift_name}}</a></li>
     {% endfor %}
     <a href="{% url 'shift_maker:create_page' %}">＋新しく募集する</a>
+</ul>
+
+<h2>他の人が募集をかけたシフト</h2>
+<ul>
+    {%for shift in others_shifts%}
+    <li><a href="{% url 'shift_maker:recruit_detail' shift.id %}">{{shift.shift_name}}</a></li>
+    {% endfor %}
 </ul>
 
 <ul>
@@ -179,7 +186,7 @@
 
 {% endblock %}
 
-{% block footer %} 
+{% block footer %}
 <a href="{% url 'shift_maker:logout' %}">ログアウト</a>
 {% endblock %}
 
@@ -219,8 +226,8 @@
         button.addEventListener('click', () => {
             deleteForm.action = button.dataset.url;
         });
-        
-        
+
+
     }
 </script>
 

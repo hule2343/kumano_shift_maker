@@ -25,7 +25,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-84pvvirgr4h_mu%!)8x7n9)rfsxm3047cqq%g-t!n7rgk41z26'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['localhost', '.pythonanywhere.com','127.0.0.1']
 
@@ -34,7 +34,7 @@ ALLOWED_HOSTS = ['localhost', '.pythonanywhere.com','127.0.0.1']
 
 INSTALLED_APPS = [
     'shift_maker.apps.Shift_makerConfig',
-    
+
     'numpy',
     'pandas',
     'pulp',
