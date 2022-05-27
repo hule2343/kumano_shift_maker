@@ -457,7 +457,7 @@ def replace_slot(request,slot_id,user_id):
     if slot in user.assigning_slot.all():
         messages.warning(request, "既にこの仕事に入っています", fail_silently=True)
         return redirect(request.META['HTTP_REFERER'])
-    workload = Slot.objects.values_list("content__workload", flat=True).get(pk=pk)
+    workload = Slot.objects.values_list("content__workload", flat=True).get(pk=slot_id)
     user.assigning_slot.add(slot)
     if overlapping_slots(user.assigning_slot.all()):
         user.assigning_slot.remove(slot)
