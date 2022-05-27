@@ -23,6 +23,7 @@ urlpatterns = [
     path('mypage/shifttempform/creshiftfromtemp/',views.shift_from_template,name='shift_from_template'),
     path('mypage/assign_lack/<int:pk>/assign/',views.assign_lack_slot,name='assign_lack'),
     path('mypage/assign_slot/<int:pk>/assign/',views.assign_slot,name='assign'),
+    path('mypage/replace/<int:slot_id>/<int:user_id>/',views.replace_slot,name='replace'),
     path('mypage/delete/<int:pk>/delete/',views.delete_assigned_slot,name='slot_delete'),
     path('mypage/delete_booking/<int:pk>/delete/',views.delete_booking_slot,name='booking_slot_delete'),
     path('login/', LoginView.as_view(template_name='admin/login.html'), name='login'),

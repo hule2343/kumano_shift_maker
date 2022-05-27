@@ -450,6 +450,27 @@ def assign_slot(request,pk):
     messages.success(request, "%s 登録しました" % slot.workname, fail_silently=True)
     return redirect(request.META['HTTP_REFERER'])
 
+def replace_slot(request,slot_id,user_id):
+    slot = Slot.objects.get(pk=slot_id)
+    user = request.user
+    target=User.objects.get(pk=user_id)
+    if slot in user.assigning_slot.all():
+        messages.warning(request, "既にこの仕事に入っています", fail_silently=True)
+        return redirect(request.META['HTTP_REFERER'])
+    workload = Slot.objects.values_list("content__workload", flat=True).get(pk=slot_id)
+    user.assigning_slot.add(slot)
+    if overlapping_slots(user.assigning_slot.all()):
+        user.assigning_slot.remove(slot)
+        messages.warning(request, "同じ時間帯に仕事に入っています", fail_silently=True)
+        return redirect(request.META['HTTP_REFERER'])
+    user.workload_sum += workload
+    user.save()
+    target.assigning_slot.remove(slot)
+    target.workload_sum -= workload
+    target.save()
+    messages.success(request, "%s 交代しました" % slot.workname, fail_silently=True)
+    return redirect(request.META['HTTP_REFERER'])
+
 
 # 登録済みスロットの登録解除
 def delete_assigned_slot(request, pk):

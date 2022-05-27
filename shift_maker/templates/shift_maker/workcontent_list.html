@@ -7,7 +7,7 @@
     {% for content in object_list %}
         <div class="card">
           <div class="card-body">
-            <span class="card-title">{{ content.contentname }}</span>
+            <span class="card-title">{% if content in user.assigned_work.all %}&#10004;{% endif %}{{ content.contentname }}</span>
             <span class="card-text">{{content.workload}}ポイント</span>
             <button type="button" class="btn btn-primary delete-modal-button"
     data-toggle="modal"
@@ -31,14 +31,14 @@
                 <div class="modal-body">
                     <div class="container-fluid">
                     <div class="card card-block h-50">
-                    <div class="card-body">    
+                    <div class="card-body">
                     <div class="card-title"><p>仕事名　<span id="workname"></span></p></div>
                     <p>ポイント　<span id="workload"></span></p>
                     <div class="card-text"><p>説明　<span id="text"></span></p></div>
                     </div>
                     </div>
                     </div>
-                </div>                
+                </div>
             </section>
             <footer class="modal-card-foot">
                 <form action="" method="post" id="delete-form">
@@ -82,8 +82,8 @@
         button.addEventListener('click', () => {
             deleteForm.action = button.dataset.url;
         });
-        
-        
+
+
     }
 </script>
 
