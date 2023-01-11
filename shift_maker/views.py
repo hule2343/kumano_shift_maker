@@ -18,7 +18,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import PasswordChangeView, PasswordChangeDoneView
 from django.db.models import Count, F
 from django.views.generic.detail import DetailView
-from .models import Slot, Shift, User, ShiftTemplate, Block, WorkContent
+from .models import Slot, Shift, User, ShiftTemplate, WorkContent
 from .forms import ShiftForm, ShiftFormFromTemplate, MyPasswordChangeForm
 from datetime import timedelta
 import pandas as pd
@@ -310,9 +310,9 @@ def shift_calculate(request, pk):
     shift_rev = df[df.columns].apply(lambda r: 1 - r[df.columns], 1)
     k = LpProblem()
 
-    C_need_diff_over = 10
+    C_need_diff_over = 11
     C_need_diff_shortage = 1000
-    C_experience = 11
+    C_experience = 10
     C_minmax = 10
     # 希望していない枠に入らないようにする制約条件
     for (_, h), (_, n) in zip(shift_rev.iterrows(), var.iterrows()):
