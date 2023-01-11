@@ -121,7 +121,7 @@
     {% endfor %}
 </ul>
 -->
-<h2>募集中のシフト</h2>
+<h2>あなたが回答すべきシフト</h2>
 <ul>
     {%for shift in shifts%}
     <li><a href="{% url 'shift_maker:recruit' shift.id %}">{{shift.shift_name}}</a></li>
